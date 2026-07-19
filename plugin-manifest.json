@@ -1,0 +1,23 @@
+{
+  "name": "GuanLan",
+  "displayName": "观澜-A股数据引擎",
+  "version": "3.2",
+  "description": "A股实时行情、技术指标(MA/MACD/RSI/布林带/KDJ/OBV/ATR/WR/CCI)、PE/PB/市值、板块排名、异动扫描(盘中7类+事件型4类)、持仓管理、交易记录、策略回测(4种)、舆情分析(5维度)、组合压力测试(5场景)、板块轮动追踪(31行业)、市场温度计、月度复盘、ATR跟踪止损、ETF资金流向适配、选股框架。DataHub双引擎容灾(Tushare+AKShare)。38个命令。作者：观澜 & 翔",
+  "author": "观澜 & 翔",
+  "pluginType": "synchronous",
+  "entryPoint": {
+    "command": "python main.py"
+  },
+  "communication": {
+    "protocol": "stdio",
+    "timeout": 120000
+  },
+  "configSchema": [
+    {
+      "name": "TUSHARE_TOKEN",
+      "description": "Tushare API Token，用于基本面/资金流向/板块数据。注册地址：https://tushare.pro",
+      "required": false,
+      "type": "string"
+    }
+  ]
+}
