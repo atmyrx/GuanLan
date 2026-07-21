@@ -200,6 +200,11 @@ def _get_spot_data():
 
 TUSHARE_TOKEN = os.environ.get('TUSHARE_TOKEN', '')
 
+# 佣金费率配置（支持用户在 config.env 中自定义）
+# 默认万2.5(0.00025)，最低5元。印花税和过户费为硬编码(全国统一)
+COMMISSION_RATE_STOCK = float(os.environ.get('BROKER_COMMISSION_STOCK', 0.00025))
+COMMISSION_RATE_ETF = float(os.environ.get('BROKER_COMMISSION_ETF', 0.00025))
+
 
 def _tushare_api(api_name, params, fields=''):
     """Tushare HTTP API封装（不依赖tushare包）"""
@@ -1312,17 +1317,23 @@ def save_trades(trades):
 
 def read_account():
     """读取账户资金信息"""
-    if not os.path.exists(ACCOUNT_PATH):
+    _path = ACCOUNT_PATH
+    if not os.path.exists(_path):
+        _path = r"G:\VCPSystem\VCP\VCPToolBox\Plugin\GuanLan\account.json"
+    if not os.path.exists(_path):
         return {"total_capital": 0, "available_cash": 0, "updated": ""}
     try:
-        with open(ACCOUNT_PATH, 'r', encoding='utf-8') as f:
+        with open(_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception:
         return {"total_capital": 0, "available_cash": 0, "updated": ""}
 
 
 def save_account(data):
-    with open(ACCOUNT_PATH, 'w', encoding='utf-8') as f:
+    _path = ACCOUNT_PATH
+    if not os.path.exists(os.path.dirname(_path)):
+        _path = r"G:\VCPSystem\VCP\VCPToolBox\Plugin\GuanLan\account.json"
+    with open(_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
@@ -1380,8 +1391,18 @@ def position_add(symbol, name, cost, shares, stop_loss, target, reason=""):
     })
     save_positions(positions)
     
-    # 扣减可用资金
-    cost_total = float(cost) * int(shares) + 5  # 佣金5元
+    # === 扣减可用资金 (真实费率 v3.2.2) ===
+    # 佣金：读取用户配置，最低5元
+    comm_rate = COMMISSION_RATE_ETF if symbol.startswith(('5', '159')) else COMMISSION_RATE_STOCK
+    comm_fee = max(float(cost) * int(shares) * comm_rate, 5)
+    # 过户费：沪市双边万0.1
+    transfer_fee = float(cost) * int(shares) * 0.00001 if symbol.startswith(('6', '5', '9', '11', '13')) else 0
+    total_fee = round(comm_fee + transfer_fee, 2)
+    # 真实摊薄成本 = (买入金额 + 手续费) / 股数
+    actual_cost = round((float(cost) * int(shares) + total_fee) / int(shares), 4)
+    positions[-1]["cost"] = actual_cost  # 更新刚追加的持仓成本
+    save_positions(positions)
+    cost_total = float(cost) * int(shares) + total_fee
     acct = read_account()
     if acct.get("total_capital", 0) > 0:
         acct["available_cash"] = round(acct.get("available_cash", 0) - cost_total, 2)
@@ -1429,8 +1450,22 @@ def position_close(symbol, sell_price, shares=None, reason="", commission=5):
         return {"status": "error", "message": f"卖出数量无效(shares={shares})"}
     today = datetime.now().strftime("%Y-%m-%d")
     
-    pnl = round((sell_price - cost) * close_shares - commission * 2, 2)
-    pnl_pct = round((sell_price - cost) / cost * 100, 2)
+    # === 真实A股费率计算引擎 v3.2.2 ===
+    # 1. 佣金：读取用户配置，最低5元
+    comm_rate = COMMISSION_RATE_ETF if symbol.startswith(('5', '159')) else COMMISSION_RATE_STOCK
+    raw_amount = sell_price * close_shares
+    comm_fee = max(raw_amount * comm_rate, 5)
+    # 2. 印花税：千1(0.1%)，仅股票卖出收取，ETF免收
+    stamp_tax = raw_amount * 0.001 if not symbol.startswith(('5', '159')) else 0
+    # 3. 过户费：万0.1(0.001%)，沪市双边收取，深市免收
+    transfer_fee = raw_amount * 0.00001 if symbol.startswith(('6', '5', '9', '11', '13')) else 0
+    # 卖出净到手金额
+    total_fee = round(comm_fee + stamp_tax + transfer_fee, 2)
+    return_total = raw_amount - total_fee
+    # 真实盈亏 = 净到手 - 买入总成本
+    cost_basis_total = cost * close_shares
+    pnl = round(return_total - cost_basis_total, 2)
+    pnl_pct = round((return_total - cost_basis_total) / cost_basis_total * 100, 2)
     
     entry_date = pos.get("entry_date", pos.get("added", today))
     try:
@@ -1463,8 +1498,7 @@ def position_close(symbol, sell_price, shares=None, reason="", commission=5):
         pos["shares"] = pos["shares"] - close_shares
         save_positions(positions)
         
-        # 返还可用资金
-        return_total = sell_price * close_shares - commission
+        # 返还可用资金（使用真实费率计算的净到手金额）
         acct = read_account()
         if acct.get("total_capital", 0) > 0:
             acct["available_cash"] = round(acct.get("available_cash", 0) + return_total, 2)
@@ -1488,8 +1522,7 @@ def position_close(symbol, sell_price, shares=None, reason="", commission=5):
     pos["pnl"] = pnl
     save_positions(positions)
     
-    # 返还可用资金
-    return_total = sell_price * close_shares - commission
+    # 返还可用资金（使用真实费率计算的净到手金额）
     acct = read_account()
     if acct.get("total_capital", 0) > 0:
         acct["available_cash"] = round(acct.get("available_cash", 0) + return_total, 2)
@@ -1505,6 +1538,25 @@ def position_close(symbol, sell_price, shares=None, reason="", commission=5):
         "hold_days": hold_days
     }
 
+
+@synchronized_data
+def position_update(symbol, stop_loss=None, target=None):
+    """更新活跃持仓的风控参数（止损/目标价）"""
+    positions = read_positions()
+    found = False
+    for pos in positions:
+        if pos.get("symbol") == symbol and pos.get("status") == "active":
+            if stop_loss is not None:
+                pos["stop_loss"] = float(stop_loss)
+                pos["atr_stop_loss"] = float(stop_loss)
+            if target is not None:
+                pos["target"] = float(target)
+            found = True
+            break
+    if not found:
+        return {"status": "not_found", "message": f"{symbol}无活跃持仓"}
+    save_positions(positions)
+    return {"status": "success", "message": f"{symbol} 风控参数已更新", "position": pos}
 
 @synchronized_data
 def position_remove(symbol):
@@ -2969,6 +3021,14 @@ def main():
                 out = {"status": "error", "message": "缺少必要参数: symbol/sell_price"}
             else:
                 out = {"status": "success", "result": position_close(symbol, p_price, p_shares, p_reason, p_commission)}
+
+        elif action == "position_update":
+            p_stop = params.get("stop_loss")
+            p_target = params.get("target")
+            if not symbol:
+                out = {"status": "error", "message": "缺少symbol参数"}
+            else:
+                out = {"status": "success", "result": position_update(symbol, p_stop, p_target)}
 
         elif action == "position_remove":
             if not symbol:

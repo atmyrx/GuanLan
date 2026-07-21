@@ -2,7 +2,7 @@
 
 > **为 AI-Agent 打造的 A股量化感知器官。** 让你的 Agent 在对话流中一句话完成查行情、扫异动、跑回测、看持仓、测压力——不需要打开 VNpy 终端，不需要写 Backtrader 脚本，不需要登录同花顺。
 
-**版本** v3.2 | **作者** 观澜 & 冬竹子（翔） | **协议** MIT
+**版本** v3.2.2 | **作者** 观澜 & 冬竹子（翔） | **协议** MIT
 
 ---
 
@@ -46,7 +46,7 @@ AKShare 容灾层（自动接管，5个降级函数覆盖全部关键维度）
 
 ### 2. filelock 跨进程并发安全
 
-`@synchronized_data` 装饰器 + FileLock，保护 11 个状态读写函数。当多个 Agent 并发调用 `position_add` 和 `position_close` 时，文件锁自动串行化，彻底杜绝 JSON 读写竞态（Race Condition）。在 VCP 插件生态中，GuanLan 是唯一实现了跨进程并发控制的同步插件。
+`@synchronized_data` 装饰器 + FileLock，保护 11 个状态读写函数。当多个 Agent 并发调用 `position_add` 和 `position_close` 时，文件锁自动串行化，彻底杜绝 JSON 读写竞态（Race Condition）。
 
 ### 3. 38 个专业命令（覆盖投研全链路）
 
@@ -202,7 +202,7 @@ GuanLan 的命令可以结合 VCPToolBox 的**定时任务系统（VCPTaskAssist
 Agent自动执行：
   → scan_anomalies（7类技术异动检测）
   → scan_events（4类事件异动检测）
-  → 有异动 → 通过 SmtpMailer 邮件推送 / AgentAssistant 通知
+  → 有异动 → 通过 SmtpMailer 邮件推送 / AgentAssistant / 企业微信 等通知
   → 无异动 → 静默不打扰
 ```
 
@@ -226,7 +226,7 @@ Agent自动执行：
 
 ### 配置要点
 
-通过 AgentAssistant 的 `timely_contact` 参数设定未来时间点，或通过 VCPTaskAssistant 的 `custom_prompt + cron` 实现周期性任务。Agent 被唤醒后自动调用 GuanLan 命令，并根据结果判断是否需要通知用户（**有异动才打扰，无异动不打扰**）。
+通过 VCPTaskAssistant 的 `custom_prompt + cron` 实现周期性任务。Agent 被唤醒后自动调用 GuanLan 命令，并根据结果判断是否需要通知用户（**有异动才打扰，无异动不打扰**）。
 
 > **安全铁律**：定时任务唤醒的 Agent **严禁修改源码或文件**，只能执行数据查询和通知推送。任务模板中必须包含行为边界约束。
 

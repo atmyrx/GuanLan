@@ -36,6 +36,8 @@
   - 自动返还可用资金（卖出价×数量-佣金）
   - 自动写入交易记录
 - `position_show`：查看当前活跃持仓
+- `position_update`：更新活跃持仓的风控参数（symbol + stop_loss + target）
+  - 秒级更新，不走文件修改，无安全审批拦截
 
 ### 交易记录（v2.6+）
 - `trade_history`：查看完整交易历史（可按symbol筛选）
