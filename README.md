@@ -44,9 +44,17 @@ AKShare 容灾层（自动接管，5个降级函数覆盖全部关键维度）
 
 这不是简单的 try/except——每个容灾函数**重新解析数据格式**，确保降级后字段语义一致。主流框架通常只支持单一数据源，GuanLan 在 A股数据源频繁变更的环境下实现了真正的生产级高可用。
 
-### 2. filelock 跨进程并发安全
+### 2. 真实A股费率引擎（v3.2.2）
 
-`@synchronized_data` 装饰器 + FileLock，保护 11 个状态读写函数。当多个 Agent 并发调用 `position_add` 和 `position_close` 时，文件锁自动串行化，彻底杜绝 JSON 读写竞态（Race Condition）。
+内置与真实券商对齐的费率计算模型，盈亏复盘精准到分：
+- **佣金**：支持配置（股票/ETF分别设置，默认万2.5，最低5元）
+- **印花税**：千1（仅卖出收取，ETF免收）
+- **过户费**：万0.1（仅沪市收取）
+买入时手续费自动摊入持仓成本价，卖出时自动计算净到手金额，胜率和盈亏比统计与实盘完全一致。
+
+### 3. filelock 跨进程并发安全
+
+`@synchronized_data` 装饰器 + FileLock，保护状态读写函数。当多个 Agent 并发调用 `position_add` 和 `position_close` 时，文件锁自动串行化，彻底杜绝 JSON 读写竞态（Race Condition）。同时支持 `position_update` 秒级更新止损/目标价（插件原生命令，不触发系统文件审批拦截）。
 
 ### 3. 38 个专业命令（覆盖投研全链路）
 
@@ -56,7 +64,7 @@ AKShare 容灾层（自动接管，5个降级函数覆盖全部关键维度）
 | **技术分析** | `kline_indicators` / `full_analysis` | MA/MACD/RSI/布林带/KDJ/OBV/ATR/WR/CCI |
 | **资金分析** | `capital_flow` | 主力/超大单/大单/中单/小单 5层资金流向 |
 | **ETF 适配** | `capital_flow`(ETF分支) | 自动识别 5/159 开头，含换手率/折价率/净份额 |
-| **持仓管理** | `position_add` / `position_close` / `portfolio_summary` | 建仓/平仓/部分减仓、自动算盈亏、ATR动态止损 |
+| **持仓管理** | `position_add` / `position_close` / `position_update` / `portfolio_summary` | 建仓/平仓/部分减仓/更新止损目标、真实费率算盈亏、ATR动态止损 |
 | **交易记录** | `trade_history` / `trade_stats` / `trade_stats_monthly` | 完整流水、胜率统计、按月盈亏比 |
 | **异动扫描** | `scan_anomalies` / `scan_events` | 7类技术异动 + 4类事件异动（龙虎榜/大宗/解禁/业绩预告） |
 | **舆情分析** | `sentiment_scan` / `sentiment_rank` | 5维度情绪聚合：机构参与度/评价/关注/买入欲望/概念热度 |
@@ -99,8 +107,13 @@ pip install pandas-ta
 3. 填入配置：
    ```env
    TUSHARE_TOKEN=你的Token
+   
+   # 佣金费率（用于精确计算盈亏，默认万2.5）
+   BROKER_COMMISSION_STOCK=0.00025
+   BROKER_COMMISSION_ETF=0.00025
    ```
 > 未配置 Token 时，相关功能自动降级到 AKShare 容灾层。
+> 未配置佣金费率时，默认使用万2.5，印花税和过户费按国家统一标准自动计算。
 
 ### 3. 在 VCPToolBox 中配置与使用
 
