@@ -1319,8 +1319,6 @@ def read_account():
     """读取账户资金信息"""
     _path = ACCOUNT_PATH
     if not os.path.exists(_path):
-        _path = r"G:\VCPSystem\VCP\VCPToolBox\Plugin\GuanLan\account.json"
-    if not os.path.exists(_path):
         return {"total_capital": 0, "available_cash": 0, "updated": ""}
     try:
         with open(_path, 'r', encoding='utf-8') as f:
@@ -1331,8 +1329,6 @@ def read_account():
 
 def save_account(data):
     _path = ACCOUNT_PATH
-    if not os.path.exists(os.path.dirname(_path)):
-        _path = r"G:\VCPSystem\VCP\VCPToolBox\Plugin\GuanLan\account.json"
     with open(_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
