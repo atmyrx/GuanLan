@@ -2,7 +2,7 @@
 
 > **为 AI-Agent 打造的 A股量化感知器官。** 让你的 Agent 在对话流中一句话完成查行情、扫异动、跑回测、看持仓、测压力——不需要打开 VNpy 终端，不需要写 Backtrader 脚本，不需要登录同花顺。
 
-**版本** v3.2.2 | **作者** 观澜 & 冬竹子（翔） | **协议** MIT
+**版本** v3.2.2 | **作者** 观澜 & 冬竹子（翔） | **协议** CC BY-NC-SA 4.0
 
 ---
 
@@ -294,7 +294,7 @@ def _get_daily_basic(symbol):
 
 ## 📄 License
 
-MIT License - 欢迎社区贡献与二次开发。
+CC BY-NC-SA 4.0 (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International) - 遵循 VCPDistributedServer 仓库协议，欢迎社区贡献与二次开发。
 
 ## 🙏 致谢
 
