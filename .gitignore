@@ -1,15 +1,22 @@
-# 敏感配置（用户私有，勿提交）
-config.env
-
-# Python缓存
+# Python
 __pycache__/
 *.pyc
 
-# 运行时数据文件（用户私有）
-account.json
-positions.json
-trades.json
-watchlist.json
+# Personal config & secrets
+config.env
 
-# 文件锁
+# Local runtime artifacts (never distribute)
+market_data/
+patches/
+harvest_state.json
+probe_raw.json
+trades_annotations.json
 guanlan.lock
+
+# Backups & logs
+main.py.bak_*
+trades.json.bak_*
+*.log
+
+# Note: positions/trades/account/watchlist/judgments/results
+# ship as EMPTY templates in repo (personal data never committed)
