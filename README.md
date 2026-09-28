@@ -187,11 +187,12 @@ BROKER_COMMISSION_ETF=0.00025
 
 ### 3. VCPToolBox 注入
 
-1. `GuanLan.txt`（工具说明）放入 `TVStxt/` 目录
-2. config.env：`VarGuanLan=GuanLan.txt`
+1. `GuanLanToolBox.txt`（工具说明，随包附带）放入 `TVStxt/` 目录
+2. config.env：`VarGuanLan=GuanLanToolBox.txt`
 3. Agent设定"————工具箱————"区加 `{{VarGuanLan}}`
 
-升级只改GuanLan.txt，不动Agent角色设定。
+升级只改GuanLanToolBox.txt，不动Agent角色设定。
+（新版VCP亦可走 toolbox_map.json 折叠工具箱机制注册，两种方式二选一）
 
 ---
 
